@@ -1,13 +1,11 @@
-
 // ignore_for_file: deprecated_member_use
 
-import 'package:flutter/gestures.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
-
+import 'package:probando/database.dart';
 import 'package:probando/pruebas/menu.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class Scaner extends StatelessWidget {
   const Scaner({Key? key}) : super(key: key);
@@ -39,6 +37,7 @@ class _ScanerQr extends State<ScanerQr> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
   late String qrText;
+  List<List<dynamic>> infoResult = [];
 
   @override
   void initState() {
@@ -51,14 +50,10 @@ class _ScanerQr extends State<ScanerQr> {
     var status = await Permission.camera.request();
     if (status.isGranted) {
       _inicializarEscaneo();
-    } else {
-      // Si se niegan los permisos, manejar según tus necesidades
-    }
+    } else {}
   }
 
-  void _inicializarEscaneo() {
-    // Inicializar el escáner aquí
-  }
+  void _inicializarEscaneo() {}
 
   @override
   Widget build(BuildContext context) {
@@ -73,45 +68,67 @@ class _ScanerQr extends State<ScanerQr> {
         children: <Widget>[
           Expanded(
             flex: 5,
-            child: GestureDetector(
-              onTap: () {
-                _abrirURL(qrText);
-              },
-              child: QRView(
-                key: qrKey,
-                onQRViewCreated: _qrEscaneado,
-              ),
+            child: QRView(
+              key: qrKey,
+              onQRViewCreated: _qrEscaneado,
             ),
           ),
           Expanded(
             flex: 1,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Escaneo: ',
-                  style: TextStyle(fontSize: 16.0),
-                ),
-                RichText(
-                  text: TextSpan(
-                    text: qrText,
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () {
-                        _abrirURL(qrText);
-                      },
-                  ),
-                ),
-              ],
-            ),
+            child: _infoCodigo(),
           ),
         ],
       ),
     );
+  }
+
+  Widget _infoCodigo() {
+    if (infoResult.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Corigen: ${infoResult[0][0]} - Cdestino: ${infoResult[0][1]}'),
+          Text('Dorigen: ${infoResult[0][2]} - Ddestino: ${infoResult[0][3]}'),
+          Text('Cantidad: ${infoResult[0][4]}'),
+          const Text(
+            'Escanee otro QR para ver info',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      );
+    } else {
+      if (qrText == 'Escanea un código QR') {
+        return const Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Escanea un código QR',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        );
+      } else {
+        return const Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('No se encontró el código'),
+            Text(
+              'Escanee otro QR para ver info',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        );
+      }
+    }
   }
 
   void _qrEscaneado(QRViewController controller) {
@@ -120,15 +137,37 @@ class _ScanerQr extends State<ScanerQr> {
       setState(() {
         qrText = scanData.code ?? 'N/A';
       });
+      selectCodigo(qrText);
     });
   }
 
-  void _abrirURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      // Manejar si no se puede abrir el enlace
+  Future<void> selectCodigo(String codigo) async {
+    final connection = await DatabaseHelper.openConnection();
+    try {
+      final result = await DatabaseHelper.executeQuery(
+        connection,
+        'SELECT "Corigen", "Cdestino", "Dorigen", "Ddestino", "Cantidad" FROM "Ttransferencia" WHERE "Corigen" = \'$codigo\'',
+      );
+      if (result.isNotEmpty) {
+        _mostrarResultado(result);
+      } else {
+        setState(() {
+          infoResult = [];
+        });
+      }
+    } catch (e) {
+      setState(() {
+        qrText = 'Error al realizar la consulta';
+      });
+    } finally {
+      await DatabaseHelper.closeConnection(connection);
     }
+  }
+
+  void _mostrarResultado(List<List<dynamic>> result) {
+    setState(() {
+      infoResult = List.from(result);
+    });
   }
 
   @override
