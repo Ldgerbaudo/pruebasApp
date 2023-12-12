@@ -16,10 +16,8 @@ class MenuPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.blue,
             ),
-            child: Column(
-            ),
+            child: Column(),
           ),
-
           ListTile(
             title: const Text('Main'),
             onTap: () {
@@ -29,7 +27,6 @@ class MenuPage extends StatelessWidget {
               );
             },
           ),
-
           ListTile(
             title: const Text(
               'Ubicacion',
@@ -42,7 +39,6 @@ class MenuPage extends StatelessWidget {
               );
             },
           ),
-
           ListTile(
             title: const Text(
               'Scaner',

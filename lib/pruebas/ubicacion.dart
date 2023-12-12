@@ -61,7 +61,7 @@ class _UbicacionMaps extends State<UbicacionMaps> {
             ),
           ),
           if (compartiendoUbicacion && posicionActual != null)
-          // ACA, CHAT GPT, ACÁ VA
+            // ACA, CHAT GPT, ACÁ VA
             Positioned(
               top: 20.0,
               left: 30.0,
