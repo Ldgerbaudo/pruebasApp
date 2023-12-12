@@ -36,6 +36,8 @@ dependencies:
   qr_code_scanner: ^1.0.1
   url_launcher: ^6.2.1
   postgres: ^2.6.1
+  fluttertoast: ^8.2.4
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:

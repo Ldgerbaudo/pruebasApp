@@ -1,7 +1,8 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:probando/database.dart';
 import 'package:probando/pruebas/menu.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
@@ -38,6 +39,10 @@ class _ScanerQr extends State<ScanerQr> {
   late QRViewController controller;
   late String qrText;
   List<List<dynamic>> infoResult = [];
+  String codigo = '';
+  String codigoPieza = '';
+  late String codigoPiezaGlobal;
+  TextEditingController cantidadController = TextEditingController();
 
   @override
   void initState() {
@@ -88,9 +93,13 @@ class _ScanerQr extends State<ScanerQr> {
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Corigen: ${infoResult[0][0]} - Cdestino: ${infoResult[0][1]}'),
-          Text('Dorigen: ${infoResult[0][2]} - Ddestino: ${infoResult[0][3]}'),
-          Text('Cantidad: ${infoResult[0][4]}'),
+          Text('Codigo: ${infoResult[0][0]}'),
+          ElevatedButton(
+            onPressed: () {
+              _mostrarAlertDialog(context, infoResult[0]);
+            },
+            child: const Text('Ver Información Detallada'),
+          ),
           const Text(
             'Escanee otro QR para ver info',
             style: TextStyle(
@@ -136,8 +145,9 @@ class _ScanerQr extends State<ScanerQr> {
     controller.scannedDataStream.listen((scanData) {
       setState(() {
         qrText = scanData.code ?? 'N/A';
+        codigo = qrText;
       });
-      selectCodigo(qrText);
+      selectCodigo(codigo);
     });
   }
 
@@ -146,10 +156,12 @@ class _ScanerQr extends State<ScanerQr> {
     try {
       final result = await DatabaseHelper.executeQuery(
         connection,
-        'SELECT "Corigen", "Cdestino", "Dorigen", "Ddestino", "Cantidad" FROM "Ttransferencia" WHERE "Corigen" = \'$codigo\'',
+        'SELECT "Codigo", "Descripcion" FROM "Tpieza" WHERE "Codigo" = \'$codigo\'',
       );
+
       if (result.isNotEmpty) {
         _mostrarResultado(result);
+        codigoPiezaGlobal = result[0][0];
       } else {
         setState(() {
           infoResult = [];
@@ -168,6 +180,119 @@ class _ScanerQr extends State<ScanerQr> {
     setState(() {
       infoResult = List.from(result);
     });
+  }
+
+  void _mostrarAlertDialog(BuildContext context, List<dynamic> info) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Información del Código'),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Origen:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.0,
+                  )),
+              Text(
+                'Codigo pieza origen: ${info[0]} - Descripcion origen: ${info[1]} - Deposito origen: 01',
+              ),
+              const SizedBox(height: 10),
+              const Text('Destino:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.0,
+                  )),
+              Text(
+                'Codigo pieza destino: ${info[0]} - Descripcion destino: ${info[1]} - Deposito destino: 04',
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Text('Cantidad: '),
+                  Expanded(
+                    child: TextField(
+                      controller: cantidadController,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                postCodigo(info[0]);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Enviar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> postCodigo(String codigoPieza) async {
+    final connection = await DatabaseHelper.openConnection();
+
+    try {
+      DateTime now = DateTime.now();
+      String fechaActual =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      String horaActual =
+          "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+
+      if (int.parse(cantidadController.text) > 0) {
+        await connection.query('''
+        INSERT INTO public."Ttransferencia"(
+          "Corigen", "Cdestino", "Dorigen", "Ddestino", "Cantidad", "Procesado", "Fecha", "Hora", "Usuario")
+        VALUES ('$codigoPieza', '$codigoPieza', '01', '04', '${cantidadController.text}', true, '$fechaActual', '$horaActual', 'TT');
+      ''');
+
+        Fluttertoast.showToast(
+          msg: "Transferencia realizada con éxito",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 2,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      } else {
+        Fluttertoast.showToast(
+          msg: "La cantidad debe ser mayor que 0",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 2,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Error al realizar la transferencia: $e",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 2,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    } finally {
+      await connection.close();
+    }
   }
 
   @override
