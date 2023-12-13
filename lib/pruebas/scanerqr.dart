@@ -254,20 +254,34 @@ class _ScanerQr extends State<ScanerQr> {
           "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
       if (int.parse(cantidadController.text) > 0) {
-        await connection.query('''
-        INSERT INTO public."Ttransferencia"(
-          "Corigen", "Cdestino", "Dorigen", "Ddestino", "Cantidad", "Procesado", "Fecha", "Hora", "Usuario")
-        VALUES ('$codigoPieza', '$codigoPieza', '01', '04', '${cantidadController.text}', true, '$fechaActual', '$horaActual', 'TT');
-      ''');
+        var result = await connection
+            .query('SELECT MAX("id") FROM public."Ttransferencia"');
+        var idQuery = result.first.first + 1;
 
-        Fluttertoast.showToast(
-          msg: "Transferencia realizada con éxito",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          timeInSecForIosWeb: 2,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-          fontSize: 16.0,
+        await connection.query('''
+        INSERT INTO public."Ttransferencia"(id, "Corigen", "Cdestino", "Dorigen", "Ddestino", "Cantidad", "Procesado", "Fecha", "Hora", "Usuario")
+        VALUES ($idQuery, '$codigoPieza', '$codigoPieza', '01', '04', '${cantidadController.text}', true, '$fechaActual', '$horaActual', 'TT');
+        ''');
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: Colors.green,
+              title: Text(
+                "Transferencia realizada con éxito. ID: $idQuery",
+                style: const TextStyle(color: Colors.white),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child:
+                      const Text("Ok", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
         );
       } else {
         Fluttertoast.showToast(
