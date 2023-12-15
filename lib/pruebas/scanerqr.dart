@@ -253,6 +253,8 @@ class _ScanerQr extends State<ScanerQr> {
       String horaActual =
           "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
+      String usuario = obtenerUsuarioHora(now.hour);
+
       if (int.parse(cantidadController.text) > 0) {
         var result = await connection
             .query('SELECT MAX("id") FROM public."Ttransferencia"');
@@ -260,8 +262,9 @@ class _ScanerQr extends State<ScanerQr> {
 
         await connection.query('''
         INSERT INTO public."Ttransferencia"(id, "Corigen", "Cdestino", "Dorigen", "Ddestino", "Cantidad", "Procesado", "Fecha", "Hora", "Usuario")
-        VALUES ($idQuery, '$codigoPieza', '$codigoPieza', '01', '04', '${cantidadController.text}', true, '$fechaActual', '$horaActual', 'TT');
-        ''');
+        VALUES ($idQuery, '$codigoPieza', '$codigoPieza', '01', '04', '${cantidadController.text}', true, '$fechaActual', '$horaActual', '$usuario');
+      ''');
+
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -307,6 +310,10 @@ class _ScanerQr extends State<ScanerQr> {
     } finally {
       await connection.close();
     }
+  }
+
+  String obtenerUsuarioHora(int hora) {
+    return (hora >= 0 && hora < 12) ? 'TM' : 'TT';
   }
 
   @override
