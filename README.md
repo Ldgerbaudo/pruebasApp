@@ -1,4 +1,8 @@
-# probando
+# Lector de QR
+
+- [Page QR Generator](https://es.qr-code-generator.com/)
+
+- [QR Scaner Doc](https://pub.dev/packages/qr_code_scanner)
 
 A new Flutter project.
 

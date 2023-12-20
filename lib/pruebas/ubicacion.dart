@@ -55,19 +55,43 @@ class _UbicacionMaps extends State<UbicacionMaps> {
                   compartirUbicacion();
                 }
               },
-              child: Text(compartiendoUbicacion
-                  ? 'Dejar de Compartir Ubicación'
-                  : 'Compartir Ubicación'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    compartiendoUbicacion ? Colors.red : Colors.green,
+              ),
+              child: Text(
+                compartiendoUbicacion
+                    ? 'Dejar de Compartir Ubicación'
+                    : 'Compartir Ubicación',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.0,
+                ),
+              ),
             ),
           ),
           if (compartiendoUbicacion && posicionActual != null)
-            // ACA, CHAT GPT, ACÁ VA
             Positioned(
               top: 20.0,
               left: 30.0,
-              child: Text(
-                'Ubicación actual: ${posicionActual!.latitude}, ${posicionActual!.longitude}',
-                style: const TextStyle(fontSize: 16.0),
+              child: Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.5),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: SelectableText(
+                  'Ubicación actual: ${posicionActual!.latitude}, ${posicionActual!.longitude}',
+                  style: const TextStyle(fontSize: 16.0),
+                ),
               ),
             ),
         ],
@@ -87,9 +111,7 @@ class _UbicacionMaps extends State<UbicacionMaps> {
         compartiendoUbicacion = true;
         posicionActual = posicion;
       });
-    } else {
-      // Permiso denegado, manejar según tus necesidades
-    }
+    } else {}
   }
 
   void noCompartir() {

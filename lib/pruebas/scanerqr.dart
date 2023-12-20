@@ -55,7 +55,9 @@ class _ScanerQr extends State<ScanerQr> {
     var status = await Permission.camera.request();
     if (status.isGranted) {
       _inicializarEscaneo();
-    } else {}
+    } else {
+      
+    }
   }
 
   void _inicializarEscaneo() {}
